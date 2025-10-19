@@ -16,10 +16,7 @@ public class PlayerLocomotion : MonoBehaviour
     private float rayCastHeightOffSet = 0.5f;
     [SerializeField] LayerMask groundLayer;
 
-    [HideInInspector] public bool isSprinting;
-    [HideInInspector] public bool isGrounded;
-    [HideInInspector] public bool isJumping;
-    [HideInInspector] public bool isAttacking;
+    [HideInInspector] public bool isSprinting, isGrounded, isJumping, isAttacking, isDefending;
 
     float sprintingSpeed = 10f;
     float walkingSpeed = 5f;
@@ -46,6 +43,7 @@ public class PlayerLocomotion : MonoBehaviour
 
         HandleMovement();
         HandleRotation();
+        HandleDefending();
     }
 
     private void HandleMovement()
@@ -156,10 +154,19 @@ public class PlayerLocomotion : MonoBehaviour
 
     public void HandleAttacking()
     {
-        if (isGrounded)
+        if (isJumping)
+            return;
+
+        if (isGrounded && !isAttacking)
         {
             animatorManager.animator.SetBool("isAttacking", true);
             animatorManager.PlayTargetAnimation("Attack", false);
         }
+    }
+
+    private void HandleDefending()
+    {
+        isDefending = inputManager.defendInput;
+        animatorManager.animator.SetBool("isDefending", isDefending);
     }
 }

@@ -10,7 +10,7 @@ public class InputManager : MonoBehaviour
     [HideInInspector] public float moveAmount;
     [HideInInspector] public float verticalInput, horizontalInput, cameraInputX, cameraInputY;
 
-    [HideInInspector] public bool sprintingInput, jumpInput, attackInput;
+    [HideInInspector] public bool sprintingInput, jumpInput, attackInput, defendInput;
 
     private void Awake()
     {
@@ -28,8 +28,13 @@ public class InputManager : MonoBehaviour
 
             playerControls.PlayerActions.Sprint.performed += i => sprintingInput = true;
             playerControls.PlayerActions.Sprint.canceled += i => sprintingInput = false;
+
             playerControls.PlayerActions.Jump.performed += i => jumpInput = true;
+
             playerControls.PlayerActions.Attack.performed += i => attackInput = true;
+
+            playerControls.PlayerActions.Defend.performed += i => defendInput = true;
+            playerControls.PlayerActions.Defend.canceled += i => defendInput = false;
         }
         playerControls.Enable();
     }
@@ -45,6 +50,7 @@ public class InputManager : MonoBehaviour
         HandleSprintingInput();
         HandleJumpInput();
         HandleAttackInput();
+        HandleDefendingInput();
     }
 
     private void HandleMovementInput()
@@ -87,6 +93,18 @@ public class InputManager : MonoBehaviour
         {
             attackInput = false;
             playerLocomotion.HandleAttacking();
+        }
+    }
+
+    private void HandleDefendingInput()
+    {
+        if (defendInput)
+        {
+            playerLocomotion.isDefending = true;
+        }
+        else
+        {
+            playerLocomotion.isDefending = false;
         }
     }
 }
