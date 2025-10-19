@@ -2,14 +2,20 @@ using UnityEngine;
 
 public class AnimatorManager : MonoBehaviour
 {
-    Animator anim;
+    public Animator animator;
     int horizontal, vertical;
 
     private void Awake()
     {
-        anim = GetComponent<Animator>();
+        animator = GetComponent<Animator>();
         horizontal = Animator.StringToHash("Horizontal");
         vertical = Animator.StringToHash("Vertical");
+    }
+
+    public void PlayTargetAnimation(string targetAnimation, bool isInteracting)
+    {
+        animator.SetBool("isInteracting", isInteracting);
+        animator.CrossFade(targetAnimation, 0.2f);
     }
 
     public void UpdateAnimatorValues(float horizontalMovement, float verticalMovement, bool isSprinting)
@@ -44,7 +50,7 @@ public class AnimatorManager : MonoBehaviour
             snappedVertical = 2;
         }
 
-        anim.SetFloat(horizontal, snappedHorizontal, 0.1f, Time.deltaTime);
-        anim.SetFloat(vertical, snappedVertical, 0.1f, Time.deltaTime);
+        animator.SetFloat(horizontal, snappedHorizontal, 0.1f, Time.deltaTime);
+        animator.SetFloat(vertical, snappedVertical, 0.1f, Time.deltaTime);
     }
 }
