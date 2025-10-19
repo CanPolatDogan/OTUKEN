@@ -19,6 +19,7 @@ public class PlayerLocomotion : MonoBehaviour
     [HideInInspector] public bool isSprinting;
     [HideInInspector] public bool isGrounded;
     [HideInInspector] public bool isJumping;
+    [HideInInspector] public bool isAttacking;
 
     float sprintingSpeed = 10f;
     float walkingSpeed = 5f;
@@ -150,6 +151,15 @@ public class PlayerLocomotion : MonoBehaviour
             Vector3 playerVelocity = moveDirection;
             playerVelocity.y = jumpVelocity;
             playerRigidbody.linearVelocity = playerVelocity;
+        }
+    }
+
+    public void HandleAttacking()
+    {
+        if (isGrounded)
+        {
+            animatorManager.animator.SetBool("isAttacking", true);
+            animatorManager.PlayTargetAnimation("Attack", false);
         }
     }
 }

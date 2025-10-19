@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class AnimatorManager : MonoBehaviour
 {
-    public Animator animator;
+    [HideInInspector] public Animator animator;
     int horizontal, vertical;
 
     private void Awake()
