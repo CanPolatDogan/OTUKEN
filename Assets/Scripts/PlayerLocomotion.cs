@@ -48,7 +48,7 @@ public class PlayerLocomotion : MonoBehaviour
 
     private void HandleMovement()
     {
-        if (isJumping)
+        if (isJumping || isDefending || isAttacking)
             return;
 
         moveDirection = cameraObject.forward * inputManager.verticalInput;
@@ -71,7 +71,7 @@ public class PlayerLocomotion : MonoBehaviour
 
     private void HandleRotation()
     {
-        if (isJumping)
+        if (isJumping || isDefending || isAttacking)
             return;
 
         Vector3 targetDirection = Vector3.zero;
@@ -140,7 +140,7 @@ public class PlayerLocomotion : MonoBehaviour
 
     public void HandleJumping()
     {
-        if (isGrounded)
+        if (isGrounded && !isDefending)
         {
             animatorManager.animator.SetBool("isJumping", true);
             animatorManager.PlayTargetAnimation("Jump", false);
@@ -154,7 +154,7 @@ public class PlayerLocomotion : MonoBehaviour
 
     public void HandleAttacking()
     {
-        if (isJumping)
+        if (isJumping || isDefending)
             return;
 
         if (isGrounded && !isAttacking)
