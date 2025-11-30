@@ -15,8 +15,8 @@ public class EnemyAI : MonoBehaviour
 
     [Header("State")]
     public GameObject currentTarget;
+    public bool isAggressive = false; // Public yaptýk - TargetSelection eriþebilsin
     private Vector3 spawnPosition;
-    private bool isAggressive = false;
 
     private HealthSystem enemyHealth;
 
