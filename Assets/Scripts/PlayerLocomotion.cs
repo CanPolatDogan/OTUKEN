@@ -73,19 +73,15 @@ public class PlayerLocomotion : MonoBehaviour
     {
         if (isJumping || isDefending || isAttacking)
             return;
-
         Vector3 targetDirection = Vector3.zero;
         targetDirection = cameraObject.forward * inputManager.verticalInput;
         targetDirection += cameraObject.right * inputManager.horizontalInput;
         targetDirection.Normalize();
         targetDirection.y = 0;
-
         if (targetDirection == Vector3.zero)
             targetDirection = transform.forward;
-
         Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
         Quaternion playerRotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-
         transform.rotation = playerRotation;
     }
 

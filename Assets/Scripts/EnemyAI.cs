@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 public class EnemyAI : MonoBehaviour
@@ -52,6 +51,17 @@ public class EnemyAI : MonoBehaviour
         if (enemyHealth == null || !enemyHealth.IsAlive())
         {
             return;
+        }
+
+        // Hedef ölmüþse idle'a dön
+        if (currentTarget != null)
+        {
+            HealthSystem targetHealth = currentTarget.GetComponent<HealthSystem>();
+            if (targetHealth != null && !targetHealth.IsAlive())
+            {
+                OnPlayerDeath();
+                return;
+            }
         }
 
         switch (currentState)
@@ -209,10 +219,39 @@ public class EnemyAI : MonoBehaviour
         HealthSystem targetHealth = currentTarget.GetComponent<HealthSystem>();
         if (targetHealth != null && targetHealth.IsAlive())
         {
-            targetHealth.TakeDamage(attackDamage);
+            float finalDamage = attackDamage;
+
+            // Oyuncu savunma yapýyor mu kontrol et
+            PlayerLocomotion playerLoco = currentTarget.GetComponent<PlayerLocomotion>();
+            if (playerLoco != null && playerLoco.isDefending)
+            {
+                // Oyuncunun baktýðý yön
+                float playerYRotation = currentTarget.transform.eulerAngles.y;
+
+                // Düþmanýn açýsýný hesapla (oyuncuya göre)
+                Vector3 directionToEnemy = (transform.position - currentTarget.transform.position).normalized;
+                float angleToEnemy = Mathf.Atan2(directionToEnemy.x, directionToEnemy.z) * Mathf.Rad2Deg;
+
+                // Açý farkýný hesapla (-180 ile 180 arasýnda normalize et)
+                float angleDifference = Mathf.DeltaAngle(playerYRotation, angleToEnemy);
+
+                // Eðer düþman önde ise (100 derece içinde)
+                if (Mathf.Abs(angleDifference) <= 100f)
+                {
+                    // %80 hasar azaltma
+                    finalDamage *= 0.2f; // 0.2 = %20 hasar (yani %80 azaltma)
+                    Debug.Log($"{enemyHealth.entityName} saldýrýsý BLOKLANDI! Hasar: {attackDamage}  {finalDamage}");
+                }
+                else
+                {
+                    Debug.Log($"{enemyHealth.entityName} arkadan saldýrdý! Savunma etkisiz. Açý farký: {angleDifference}°");
+                }
+            }
+
+            targetHealth.TakeDamage(finalDamage);
             lastAttackTime = Time.time;
 
-            Debug.Log($"{enemyHealth.entityName} oyuncuya {attackDamage} hasar verdi!");
+            Debug.Log($"{enemyHealth.entityName} oyuncuya {finalDamage} hasar verdi!");
         }
     }
 
@@ -225,6 +264,19 @@ public class EnemyAI : MonoBehaviour
             currentState = EnemyState.Chasing;
             Debug.Log($"{enemyHealth.entityName} saldýrýya uðradý ve karþýlýk veriyor!");
         }
+    }
+
+    // Oyuncu öldüðünde çaðrýlýr
+    public void OnPlayerDeath()
+    {
+        Debug.Log($"{enemyHealth.entityName} savaþý kazandý ve geri dönüyor.");
+
+        currentTarget = null;
+        isAggressive = false;
+        currentState = EnemyState.Returning;
+
+        // Animasyonlarý sýfýrla
+        SetRunningAnimation(true); // Geri dönerken koþacak
     }
 
     // Animasyon metodlarý
@@ -248,40 +300,29 @@ public class EnemyAI : MonoBehaviour
     {
         if (animator != null)
         {
+            // Tüm trigger ve bool'larý sýfýrla
+            animator.SetBool("isRunning", false);
+            animator.ResetTrigger("attack");
+
+            // Death'i aktif et
             animator.SetBool("isDead", true);
+
+            Debug.Log("Death animasyonu aktifleþtirildi - Animator enabled: " + animator.enabled);
         }
     }
 
     // HealthSystem'den çaðrýlabilmesi için public metod
     public void OnDeath()
     {
-        StartCoroutine(SmoothMoveDown());
         SetDeathAnimation();
-        SetRunningAnimation(false);
 
-        // AI'ý devre dýþý býrak
-        this.enabled = false;
+        // Kýsa bir gecikme ile AI'ý kapat (animasyon baþlasýn diye)
+        Invoke("DisableAI", 0.1f);
     }
 
-    IEnumerator SmoothMoveDown()
+    private void DisableAI()
     {
-        float duration = 0.5f;      // toplam süre
-        float targetAmount = -1.7f; // toplam azalacak miktar
-        float elapsed = 0f;
-
-        Vector3 startPos = transform.position;
-        Vector3 endPos = transform.position + new Vector3(0, targetAmount, 0);
-
-        yield return new WaitForSeconds(1.7f); // 0.5 saniye bekler
-
-        while (elapsed < duration)
-        {
-            transform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        transform.position = endPos; // Tam noktasýna oturt
+        this.enabled = false;
     }
 
     private void OnDrawGizmosSelected()

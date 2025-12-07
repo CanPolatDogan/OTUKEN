@@ -118,6 +118,13 @@ public class HealthSystem : MonoBehaviour
             // Oyuncu öldüðünde yapýlacaklar
             Debug.Log("Game Over!");
 
+            // Oyuncu kontrollerini devre dýþý býrak
+            InputManager inputManager = GetComponent<InputManager>();
+            if (inputManager != null)
+            {
+                inputManager.enabled = false;
+            }
+
             // Oyuncu animatörü varsa ölüm animasyonu
             Animator animator = GetComponent<Animator>();
             if (animator != null)
@@ -125,10 +132,29 @@ public class HealthSystem : MonoBehaviour
                 animator.SetBool("isDead", true);
             }
 
-            // Oyuncu kontrollerini devre dýþý býrak (varsa)
-            // PlayerController gibi bir script varsa:
-            // GetComponent<PlayerController>().enabled = false;
+            // Tüm düþmanlara oyuncunun öldüðünü bildir
+            NotifyEnemiesOfPlayerDeath();
+
+            // Collider'ý kapat (düþmanlar üzerinden geçebilsin)
+            Collider col = GetComponent<Collider>();
+            if (col != null)
+            {
+                col.enabled = false;
+            }
         }
+    }
+
+    private void NotifyEnemiesOfPlayerDeath()
+    {
+        // Sahnedeki tüm düþmanlarý bul
+        EnemyAI[] allEnemies = FindObjectsOfType<EnemyAI>();
+
+        foreach (EnemyAI enemy in allEnemies)
+        {
+            enemy.OnPlayerDeath();
+        }
+
+        Debug.Log($"{allEnemies.Length} düþmana oyuncunun öldüðü bildirildi.");
     }
 
     public bool IsAlive()
