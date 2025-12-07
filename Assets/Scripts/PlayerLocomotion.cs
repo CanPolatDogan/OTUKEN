@@ -73,16 +73,62 @@ public class PlayerLocomotion : MonoBehaviour
     {
         if (isJumping || isDefending || isAttacking)
             return;
-        Vector3 targetDirection = Vector3.zero;
-        targetDirection = cameraObject.forward * inputManager.verticalInput;
-        targetDirection += cameraObject.right * inputManager.horizontalInput;
-        targetDirection.Normalize();
-        targetDirection.y = 0;
-        if (targetDirection == Vector3.zero)
-            targetDirection = transform.forward;
-        Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
-        Quaternion playerRotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-        transform.rotation = playerRotation;
+
+        // Input var mý kontrol et
+        if (inputManager.verticalInput == 0 && inputManager.horizontalInput == 0)
+            return;
+
+        // Kamera yönüne göre hedef açýyý hesapla
+        float targetAngle = 0f;
+        float cameraYAngle = cameraObject.eulerAngles.y;
+
+        // 8 yönlü sistem
+        if (inputManager.verticalInput > 0 && inputManager.horizontalInput == 0)
+        {
+            // W - Ýleri
+            targetAngle = cameraYAngle;
+        }
+        else if (inputManager.verticalInput > 0 && inputManager.horizontalInput > 0)
+        {
+            // W+D - Ýleri-Sað
+            targetAngle = cameraYAngle + 45f;
+        }
+        else if (inputManager.verticalInput == 0 && inputManager.horizontalInput > 0)
+        {
+            // D - Sað
+            targetAngle = cameraYAngle + 90f;
+        }
+        else if (inputManager.verticalInput < 0 && inputManager.horizontalInput > 0)
+        {
+            // S+D - Geri-Sað
+            targetAngle = cameraYAngle + 135f;
+        }
+        else if (inputManager.verticalInput < 0 && inputManager.horizontalInput == 0)
+        {
+            // S - Geri
+            targetAngle = cameraYAngle + 180f;
+        }
+        else if (inputManager.verticalInput < 0 && inputManager.horizontalInput < 0)
+        {
+            // S+A - Geri-Sol
+            targetAngle = cameraYAngle - 135f;
+        }
+        else if (inputManager.verticalInput == 0 && inputManager.horizontalInput < 0)
+        {
+            // A - Sol
+            targetAngle = cameraYAngle - 90f;
+        }
+        else if (inputManager.verticalInput > 0 && inputManager.horizontalInput < 0)
+        {
+            // W+A - Ýleri-Sol
+            targetAngle = cameraYAngle - 45f;
+        }
+
+        // Hedef rotasyonu oluþtur
+        Quaternion targetRotation = Quaternion.Euler(0, targetAngle, 0);
+
+        // Yumuþak geçiþ (istersen daha hýzlý yapabilirsin)
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
     }
 
     private void HandleFallingAndLanding()

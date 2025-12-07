@@ -236,7 +236,7 @@ public class EnemyAI : MonoBehaviour
                 float angleDifference = Mathf.DeltaAngle(playerYRotation, angleToEnemy);
 
                 // Eðer düþman önde ise (100 derece içinde)
-                if (Mathf.Abs(angleDifference) <= 100f)
+                if (Mathf.Abs(angleDifference) <= 80f)
                 {
                     // %80 hasar azaltma
                     finalDamage *= 0.2f; // 0.2 = %20 hasar (yani %80 azaltma)
