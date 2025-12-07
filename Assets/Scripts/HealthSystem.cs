@@ -17,12 +17,16 @@ public class HealthSystem : MonoBehaviour
     public string entityName;
     public bool isPlayer = false;
 
+    [Header("Death Settings")]
+    public float deathDestroyDelay = 3f; // Ölüm animasyonu için bekleme süresi
+
+    private bool isDead = false;
+
     private void Start()
     {
         currentHealth = maxHealth;
         UpdateHealthUI();
 
-        // Canavar için UI'ý baþta gizle
         if (!isPlayer && healthBarUI != null)
         {
             healthBarUI.SetActive(false);
@@ -31,6 +35,8 @@ public class HealthSystem : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
+        if (isDead) return; // Ölüyse hasar alma
+
         currentHealth -= damage;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthUI();
@@ -43,6 +49,8 @@ public class HealthSystem : MonoBehaviour
 
     public void Heal(float amount)
     {
+        if (isDead) return;
+
         currentHealth += amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthUI();
@@ -71,22 +79,60 @@ public class HealthSystem : MonoBehaviour
 
     private void Die()
     {
+        if (isDead) return; // Birden fazla çaðrýlmasýný önle
+        isDead = true;
+
         Debug.Log($"{entityName} öldü!");
 
         if (!isPlayer)
         {
-            // Canavar öldüðünde yapýlacaklar
-            Destroy(gameObject, 2f);
+            // EnemyAI'a ölüm animasyonunu tetikle
+            EnemyAI enemyAI = GetComponent<EnemyAI>();
+            if (enemyAI != null)
+            {
+                enemyAI.OnDeath();
+            }
+
+            // Collider'ý kapat (düþman üzerinden geçilebilsin)
+            Collider col = GetComponent<Collider>();
+            if (col != null)
+            {
+                col.enabled = false;
+            }
+
+            // Rigidbody varsa kinematic yap
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+            }
+
+            // Health bar'ý gizle
+            ShowHealthBar(false);
+
+            // Animasyon oynadýktan sonra objeyi yok et
+            Destroy(gameObject, deathDestroyDelay);
         }
         else
         {
             // Oyuncu öldüðünde yapýlacaklar
             Debug.Log("Game Over!");
+
+            // Oyuncu animatörü varsa ölüm animasyonu
+            Animator animator = GetComponent<Animator>();
+            if (animator != null)
+            {
+                animator.SetBool("isDead", true);
+            }
+
+            // Oyuncu kontrollerini devre dýþý býrak (varsa)
+            // PlayerController gibi bir script varsa:
+            // GetComponent<PlayerController>().enabled = false;
         }
     }
 
     public bool IsAlive()
     {
-        return currentHealth > 0;
+        return !isDead && currentHealth > 0;
     }
 }

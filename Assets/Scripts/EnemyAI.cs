@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class EnemyAI : MonoBehaviour
@@ -11,12 +12,15 @@ public class EnemyAI : MonoBehaviour
     [Header("Movement Settings")]
     public float moveSpeed = 2f;
     public float chaseRange = 10f;
-    public float returnDistance = 15f; // Spawn noktasýndan bu kadar uzaklaþýrsa geri döner
+    public float returnDistance = 15f;
 
     [Header("State")]
     public GameObject currentTarget;
-    public bool isAggressive = false; // Public yaptýk - TargetSelection eriþebilsin
+    public bool isAggressive = false;
     private Vector3 spawnPosition;
+
+    [Header("Animation")]
+    private Animator animator;
 
     private HealthSystem enemyHealth;
 
@@ -33,7 +37,14 @@ public class EnemyAI : MonoBehaviour
     private void Start()
     {
         enemyHealth = GetComponent<HealthSystem>();
+        animator = GetComponent<Animator>();
         spawnPosition = transform.position;
+
+        // Animator kontrolü
+        if (animator == null)
+        {
+            Debug.LogError($"{gameObject.name} üzerinde Animator component bulunamadý!");
+        }
     }
 
     private void Update()
@@ -62,7 +73,9 @@ public class EnemyAI : MonoBehaviour
 
     private void IdleBehavior()
     {
-        // Yakýnda oyuncu var mý kontrol et
+        // Idle animasyonu (isRunning false olunca otomatik oynar)
+        SetRunningAnimation(false);
+
         if (isAggressive && currentTarget != null)
         {
             float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
@@ -76,13 +89,15 @@ public class EnemyAI : MonoBehaviour
 
     private void ChaseBehavior()
     {
+        // Koþma animasyonu
+        SetRunningAnimation(true);
+
         if (currentTarget == null)
         {
             currentState = EnemyState.Idle;
             return;
         }
 
-        // Hedef ölmüþ mü kontrol et
         HealthSystem targetHealth = currentTarget.GetComponent<HealthSystem>();
         if (targetHealth == null || !targetHealth.IsAlive())
         {
@@ -95,32 +110,31 @@ public class EnemyAI : MonoBehaviour
         float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
         float spawnDistance = Vector3.Distance(transform.position, spawnPosition);
 
-        // Çok uzaklaþtýysa geri dön
         if (spawnDistance > returnDistance)
         {
             currentState = EnemyState.Returning;
             return;
         }
 
-        // Saldýrý menzilindeyse saldýr
         if (distance <= attackRange)
         {
             currentState = EnemyState.Attacking;
         }
         else if (distance <= chaseRange)
         {
-            // Hedefe doðru hareket et
             MoveTowards(currentTarget.transform.position);
         }
         else
         {
-            // Hedef çok uzaklaþtý
             currentState = EnemyState.Returning;
         }
     }
 
     private void AttackBehavior()
     {
+        // Saldýrýrken koþma animasyonunu durdur
+        SetRunningAnimation(false);
+
         if (currentTarget == null)
         {
             currentState = EnemyState.Idle;
@@ -129,7 +143,6 @@ public class EnemyAI : MonoBehaviour
 
         float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
 
-        // Hedefe dön
         Vector3 direction = (currentTarget.transform.position - transform.position).normalized;
         direction.y = 0;
         if (direction != Vector3.zero)
@@ -137,14 +150,12 @@ public class EnemyAI : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 5f);
         }
 
-        // Menzil dýþýna çýktýysa kovala
         if (distance > attackRange)
         {
             currentState = EnemyState.Chasing;
             return;
         }
 
-        // Saldýrý gerçekleþtir
         if (Time.time - lastAttackTime >= attackCooldown)
         {
             PerformAttack();
@@ -153,16 +164,17 @@ public class EnemyAI : MonoBehaviour
 
     private void ReturnBehavior()
     {
+        // Geri dönerken koþma animasyonu
+        SetRunningAnimation(true);
+
         float distance = Vector3.Distance(transform.position, spawnPosition);
 
         if (distance < 1f)
         {
-            // Spawn noktasýna ulaþtý
             currentTarget = null;
             isAggressive = false;
             currentState = EnemyState.Idle;
 
-            // Caný yenile (opsiyonel)
             if (enemyHealth != null)
             {
                 enemyHealth.Heal(enemyHealth.maxHealth);
@@ -191,6 +203,9 @@ public class EnemyAI : MonoBehaviour
     {
         if (currentTarget == null) return;
 
+        // Saldýrý animasyonunu tetikle
+        TriggerAttackAnimation();
+
         HealthSystem targetHealth = currentTarget.GetComponent<HealthSystem>();
         if (targetHealth != null && targetHealth.IsAlive())
         {
@@ -198,13 +213,9 @@ public class EnemyAI : MonoBehaviour
             lastAttackTime = Time.time;
 
             Debug.Log($"{enemyHealth.entityName} oyuncuya {attackDamage} hasar verdi!");
-
-            // Saldýrý animasyonu buraya eklenebilir
-            // animator.SetTrigger("Attack");
         }
     }
 
-    // Oyuncu saldýrdýðýnda çaðrýlýr
     public void OnAttacked(GameObject attacker)
     {
         if (!isAggressive)
@@ -216,7 +227,63 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // Görsel gösterim için
+    // Animasyon metodlarý
+    private void SetRunningAnimation(bool isRunning)
+    {
+        if (animator != null)
+        {
+            animator.SetBool("isRunning", isRunning);
+        }
+    }
+
+    private void TriggerAttackAnimation()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger("attack");
+        }
+    }
+
+    private void SetDeathAnimation()
+    {
+        if (animator != null)
+        {
+            animator.SetBool("isDead", true);
+        }
+    }
+
+    // HealthSystem'den çaðrýlabilmesi için public metod
+    public void OnDeath()
+    {
+        StartCoroutine(SmoothMoveDown());
+        SetDeathAnimation();
+        SetRunningAnimation(false);
+
+        // AI'ý devre dýþý býrak
+        this.enabled = false;
+    }
+
+    IEnumerator SmoothMoveDown()
+    {
+        float duration = 0.5f;      // toplam süre
+        float targetAmount = -1.7f; // toplam azalacak miktar
+        float elapsed = 0f;
+
+        Vector3 startPos = transform.position;
+        Vector3 endPos = transform.position + new Vector3(0, targetAmount, 0);
+
+        yield return new WaitForSeconds(1.7f); // 0.5 saniye bekler
+
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = endPos; // Tam noktasýna oturt
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
