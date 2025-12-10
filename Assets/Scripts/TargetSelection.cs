@@ -1,7 +1,8 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System.Linq;
-using System.Collections.Generic;
 
 public class TargetSelection : MonoBehaviour
 {
@@ -25,6 +26,8 @@ public class TargetSelection : MonoBehaviour
     public bool pulseEffect = true;
     public float pulseSpeed = 2f;
     public float pulseAmount = 0.15f;
+
+    [SerializeField] GameObject loadingPanel;
 
     private GameObject currentIndicator;
     private Vector3 indicatorOriginalScale;
@@ -53,11 +56,22 @@ public class TargetSelection : MonoBehaviour
     private void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player");
+
         if (player == null)
         {
             Debug.LogError("Player tag'li obje bulunamadý!");
         }
+
+        loadingPanel.SetActive(true);   // Aç
+        StartCoroutine(CloseLoadingPanel());  // 1 saniye sonra kapat
     }
+
+    private IEnumerator CloseLoadingPanel()
+    {
+        yield return new WaitForSeconds(1f);  // 1 saniye bekle
+        loadingPanel.SetActive(false);        // Kapat
+    }
+
 
     private void OnEnable()
     {
