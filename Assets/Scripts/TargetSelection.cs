@@ -250,6 +250,7 @@ public class TargetSelection : MonoBehaviour
 
     private void OnNextTarget(InputAction.CallbackContext context)
     {
+        RotatePlayerToTarget();
         SelectNextTarget();
     }
 
@@ -277,9 +278,6 @@ public class TargetSelection : MonoBehaviour
 
         // Seçim göstergesini oluþtur
         Create2DSelectionIndicator();
-
-        // Oyuncuyu hedefe döndür
-        RotatePlayerToTarget();
 
         Debug.Log($"Hedef seçildi: {targetHealth.entityName}");
     }
