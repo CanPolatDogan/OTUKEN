@@ -87,7 +87,13 @@ public class HealthSystem : MonoBehaviour
         if (healthBarUI != null)
         {
             healthBarUI.SetActive(show);
-            nameText.text = entityName;
+
+            if (show)
+            {
+                nameText.text = entityName;
+                // Bar açýlýrken can deðerlerini de güncelle!
+                UpdateHealthUI();
+            }
         }
     }
 
