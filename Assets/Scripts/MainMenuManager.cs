@@ -19,6 +19,7 @@ public class MainMenuManager : MonoBehaviour
 
     [Header("Text Elements")]
     public TMP_Text titleText;
+    public TMP_InputField playerNameInput;
 
     [Header("Audio")]
     public AudioSource backgroundMusic;
@@ -35,6 +36,8 @@ public class MainMenuManager : MonoBehaviour
     {
         loadingPanel.SetActive(false);
         ShowMainMenu();
+
+        playerNameInput.text = PlayerPrefs.GetString("PlayerName", "");
 
         if (startButton != null)
             startButton.onClick.AddListener(StartGame);
@@ -71,6 +74,7 @@ public class MainMenuManager : MonoBehaviour
     public void StartGame()
     {
         Debug.Log("Oyun baslatiliyor...");
+        PlayerPrefs.SetString("PlayerName", playerNameInput.text);
         loadingPanel.SetActive(true);
         StartCoroutine(LoadGameScene());
     }

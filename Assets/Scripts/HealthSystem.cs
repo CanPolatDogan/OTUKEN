@@ -11,6 +11,7 @@ public class HealthSystem : MonoBehaviour
     [Header("UI References")]
     public Slider healthBar;
     public TMP_Text healthText;
+    public TMP_Text nameText;
     public GameObject healthBarUI;
 
     [Header("Entity Info")]
@@ -26,6 +27,18 @@ public class HealthSystem : MonoBehaviour
     {
         currentHealth = maxHealth;
         UpdateHealthUI();
+
+        if (isPlayer)
+        {
+            if (PlayerPrefs.GetString("PlayerName") == string.Empty)
+            {
+                nameText.text = "Oyuncu";
+            }
+            else
+            {
+                nameText.text = PlayerPrefs.GetString("PlayerName");
+            }
+        }
 
         if (!isPlayer && healthBarUI != null)
         {
@@ -74,6 +87,7 @@ public class HealthSystem : MonoBehaviour
         if (healthBarUI != null)
         {
             healthBarUI.SetActive(show);
+            nameText.text = entityName;
         }
     }
 
