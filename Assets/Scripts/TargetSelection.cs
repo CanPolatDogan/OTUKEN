@@ -186,7 +186,7 @@ public class TargetSelection : MonoBehaviour
             spriteRenderer.sprite = CreateDefaultCircleSprite();
         }
 
-        spriteRenderer.color = Color.orange; // Kýrmýzý
+        spriteRenderer.color = Color.red; // Kýrmýzý
         spriteRenderer.sortingOrder = 99; // Seçili indicator'ýn altýnda
 
         indicator.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
@@ -250,8 +250,15 @@ public class TargetSelection : MonoBehaviour
 
     private void OnNextTarget(InputAction.CallbackContext context)
     {
-        RotatePlayerToTarget();
-        SelectNextTarget();
+        HealthSystem playerHealth = player.GetComponent<HealthSystem>();
+        if (playerHealth != null)
+        {
+            if (!playerHealth.isDead)
+            {
+                RotatePlayerToTarget();
+                SelectNextTarget();
+            }
+        }
     }
 
     public void SelectTarget(GameObject target)

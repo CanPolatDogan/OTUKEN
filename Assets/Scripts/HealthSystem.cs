@@ -21,7 +21,7 @@ public class HealthSystem : MonoBehaviour
     [Header("Death Settings")]
     public float deathDestroyDelay = 3f; // Ölüm animasyonu için bekleme süresi
 
-    private bool isDead = false;
+    public bool isDead = false;
 
     private void Start()
     {
