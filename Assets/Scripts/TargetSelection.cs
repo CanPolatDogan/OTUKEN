@@ -186,7 +186,7 @@ public class TargetSelection : MonoBehaviour
             spriteRenderer.sprite = CreateDefaultCircleSprite();
         }
 
-        spriteRenderer.color = Color.red; // Kýrmýzý
+        spriteRenderer.color = Color.orange; // Kýrmýzý
         spriteRenderer.sortingOrder = 99; // Seçili indicator'ýn altýnda
 
         indicator.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);

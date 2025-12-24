@@ -13,6 +13,14 @@ public class EnemyAI : MonoBehaviour
     public float chaseRange = 10f;
     public float returnDistance = 15f;
 
+    [Header("Patrol Settings")]
+    public float patrolRadius = 5f; // 10x10 alan için 5 birim yarýçap
+    public float patrolWaitTime = 2f; // Noktalarda bekleme süresi
+    public float patrolPointReachDistance = 0.5f;
+    private Vector3 currentPatrolTarget;
+    private float patrolWaitTimer = 0f;
+    private bool isWaitingAtPatrolPoint = false;
+
     [Header("State")]
     public GameObject currentTarget;
     public bool isAggressive = false;
@@ -39,7 +47,9 @@ public class EnemyAI : MonoBehaviour
         animator = GetComponent<Animator>();
         spawnPosition = transform.position;
 
-        // Animator kontrolü
+        // Ýlk patrol noktasýný belirle
+        SetNewPatrolPoint();
+
         if (animator == null)
         {
             Debug.LogError($"{gameObject.name} üzerinde Animator component bulunamadý!");
@@ -83,17 +93,83 @@ public class EnemyAI : MonoBehaviour
 
     private void IdleBehavior()
     {
-        // Idle animasyonu (isRunning false olunca otomatik oynar)
-        SetRunningAnimation(false);
+        // Agresif deðilse patrol yap
+        if (!isAggressive)
+        {
+            PatrolBehavior();
+        }
+        else
+        {
+            SetRunningAnimation(false);
+        }
 
-        if (isAggressive && currentTarget != null)
+        // Oyuncu menzile girdi mi kontrol et
+        if (currentTarget != null)
         {
             float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
 
             if (distance <= chaseRange)
             {
+                isAggressive = true;
                 currentState = EnemyState.Chasing;
             }
+        }
+        else
+        {
+            // Oyuncu aramaya devam et
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+            {
+                float distance = Vector3.Distance(transform.position, player.transform.position);
+                if (distance <= chaseRange)
+                {
+                    currentTarget = player;
+                    isAggressive = true;
+                    currentState = EnemyState.Chasing;
+                }
+            }
+        }
+    }
+
+    private void SetNewPatrolPoint()
+    {
+        // Spawn noktasýndan 10x10'luk alanda rastgele nokta
+        float randomX = Random.Range(-patrolRadius, patrolRadius);
+        float randomZ = Random.Range(-patrolRadius, patrolRadius);
+        currentPatrolTarget = spawnPosition + new Vector3(randomX, 0, randomZ);
+    }
+
+    private void PatrolBehavior()
+    {
+        // Koþma animasyonu
+        SetRunningAnimation(true);
+
+        // Bekleme durumu
+        if (isWaitingAtPatrolPoint)
+        {
+            patrolWaitTimer += Time.deltaTime;
+
+            if (patrolWaitTimer >= patrolWaitTime)
+            {
+                isWaitingAtPatrolPoint = false;
+                patrolWaitTimer = 0f;
+                SetNewPatrolPoint();
+            }
+            return;
+        }
+
+        // Patrol noktasýna git
+        float distance = Vector3.Distance(transform.position, currentPatrolTarget);
+
+        if (distance < patrolPointReachDistance)
+        {
+            // Noktaya ulaþtý, bekle
+            isWaitingAtPatrolPoint = true;
+            SetRunningAnimation(false); // Beklerken dur
+        }
+        else
+        {
+            MoveTowards(currentPatrolTarget);
         }
     }
 

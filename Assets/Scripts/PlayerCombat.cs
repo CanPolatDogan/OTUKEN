@@ -1,18 +1,23 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections.Generic;
 
 public class PlayerCombat : MonoBehaviour
 {
     [Header("Combat Settings")]
     public float attackDamage = 20f;
     public float attackRange = 3f;
+    public float attackAngle = 90f; // 90 derece açý
     public float attackCooldown = 1f;
     private float lastAttackTime = 0f;
+
+    [Header("Hit Flash Settings")]
+    public float flashDuration = 0.2f;
+    public Color flashColor = Color.red;
 
     [Header("References")]
     private HealthSystem playerHealth;
     private PlayerControls playerControls;
-
     PlayerLocomotion playerLoco;
 
     private void Awake()
@@ -45,7 +50,7 @@ public class PlayerCombat : MonoBehaviour
 
     private void TryAttack()
     {
-        if (playerLoco.isAttacking)
+        if (playerLoco != null && playerLoco.isAttacking)
         {
             return;
         }
@@ -57,68 +62,103 @@ public class PlayerCombat : MonoBehaviour
             return;
         }
 
-        // Hedef seçili mi kontrol et
-        GameObject target = TargetSelection.Instance.GetCurrentTarget();
-
-        if (target == null)
-        {
-            Debug.Log("Hedef seçilmedi!");
-            return;
-        }
-
-        // Hedef hala hayatta mý
-        HealthSystem targetHealth = target.GetComponent<HealthSystem>();
-        if (targetHealth == null || !targetHealth.IsAlive())
-        {
-            Debug.Log("Hedef geçersiz!");
-            TargetSelection.Instance.DeselectTarget();
-            return;
-        }
-
-        // Menzil kontrolü
-        float distance = Vector3.Distance(transform.position, target.transform.position);
-
-        if (distance > attackRange)
-        {
-            Debug.Log($"Hedef çok uzakta! Mesafe: {distance:F1}m, Menzil: {attackRange}m");
-            return;
-        }
-
-        // Saldýrý gerçekleþtir
-        PerformAttack(target, targetHealth);
+        // AoE saldýrý gerçekleþtir
+        PerformAoEAttack();
     }
 
-    private void PerformAttack(GameObject target, HealthSystem targetHealth)
+    private void PerformAoEAttack()
     {
-        // Hedefe hasar ver
-        targetHealth.TakeDamage(attackDamage);
-        lastAttackTime = Time.time;
+        // Menzildeki tüm düþmanlarý bul
+        GameObject[] allEnemies = GameObject.FindGameObjectsWithTag("Enemy");
+        List<GameObject> hitEnemies = new List<GameObject>();
 
-        // Hedefe dön
-        Vector3 direction = (target.transform.position - transform.position).normalized;
-        direction.y = 0; // Sadece yatay düzlemde dön
-        if (direction != Vector3.zero)
+        Vector3 playerForward = transform.forward;
+        Vector3 playerPosition = transform.position;
+
+        foreach (GameObject enemy in allEnemies)
         {
-            transform.rotation = Quaternion.LookRotation(direction);
+            if (enemy == null) continue;
+
+            // Mesafe kontrolü
+            float distance = Vector3.Distance(playerPosition, enemy.transform.position);
+            if (distance > attackRange) continue;
+
+            // Açý kontrolü
+            Vector3 directionToEnemy = (enemy.transform.position - playerPosition).normalized;
+            float angle = Vector3.Angle(playerForward, directionToEnemy);
+
+            // 90 derece açý içinde mi?
+            if (angle <= attackAngle / 2f)
+            {
+                // Düþman canlý mý?
+                HealthSystem enemyHealth = enemy.GetComponent<HealthSystem>();
+                if (enemyHealth != null && enemyHealth.IsAlive())
+                {
+                    hitEnemies.Add(enemy);
+                }
+            }
         }
 
-        Debug.Log($"{targetHealth.entityName}'e {attackDamage} hasar verildi! Kalan can: {targetHealth.currentHealth}");
-
-        // Düþmaný uyandýr (karþýlýk vermesi için)
-        EnemyAI enemyAI = target.GetComponent<EnemyAI>();
-        if (enemyAI != null)
+        // Vurulan düþman var mý?
+        if (hitEnemies.Count > 0)
         {
-            enemyAI.OnAttacked(gameObject);
-        }
+            Debug.Log($"{hitEnemies.Count} düþmana vuruldu!");
 
-        // Saldýrý animasyonu buraya eklenebilir
-        // animator.SetTrigger("Attack");
+            foreach (GameObject enemy in hitEnemies)
+            {
+                // Hasar ver
+                HealthSystem enemyHealth = enemy.GetComponent<HealthSystem>();
+                if (enemyHealth != null)
+                {
+                    enemyHealth.TakeDamage(attackDamage);
+
+                    // Kýrmýzý flash efekti
+                    enemyHealth.FlashRed();
+
+                    Debug.Log($"{enemyHealth.entityName}'e {attackDamage} hasar! Kalan: {enemyHealth.currentHealth}");
+                }
+
+                // Düþmaný uyandýr
+                EnemyAI enemyAI = enemy.GetComponent<EnemyAI>();
+                if (enemyAI != null)
+                {
+                    enemyAI.OnAttacked(gameObject);
+                }
+            }
+
+            lastAttackTime = Time.time;
+        }
+        else
+        {
+            Debug.Log("Hiçbir düþman vurulmadý!");
+        }
     }
 
-    // Menzil göstergesi için Gizmo
+    // Menzil ve açý göstergesi
     private void OnDrawGizmosSelected()
     {
+        // Menzil çemberi
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        // 90 derece açý göstergesi
+        Vector3 forward = transform.forward;
+        Vector3 rightBoundary = Quaternion.Euler(0, attackAngle / 2f, 0) * forward * attackRange;
+        Vector3 leftBoundary = Quaternion.Euler(0, -attackAngle / 2f, 0) * forward * attackRange;
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawLine(transform.position, transform.position + rightBoundary);
+        Gizmos.DrawLine(transform.position, transform.position + leftBoundary);
+
+        // Açý alanýný göster
+        Gizmos.color = new Color(1, 1, 0, 0.3f);
+        Vector3 previousPoint = transform.position + rightBoundary;
+        for (int i = 0; i <= 20; i++)
+        {
+            float angle = -attackAngle / 2f + (attackAngle / 20f) * i;
+            Vector3 point = transform.position + Quaternion.Euler(0, angle, 0) * forward * attackRange;
+            Gizmos.DrawLine(previousPoint, point);
+            previousPoint = point;
+        }
     }
 }
