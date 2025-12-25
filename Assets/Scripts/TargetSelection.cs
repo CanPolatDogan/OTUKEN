@@ -62,14 +62,14 @@ public class TargetSelection : MonoBehaviour
             Debug.LogError("Player tag'li obje bulunamadý!");
         }
 
-        loadingPanel.SetActive(true);   // Aç
-        StartCoroutine(CloseLoadingPanel());  // 1 saniye sonra kapat
+        loadingPanel.SetActive(true);
+        StartCoroutine(CloseLoadingPanel());
     }
 
     private IEnumerator CloseLoadingPanel()
     {
-        yield return new WaitForSeconds(1f);  // 1 saniye bekle
-        loadingPanel.SetActive(false);        // Kapat
+        yield return new WaitForSeconds(1f);
+        loadingPanel.SetActive(false);
     }
 
 
@@ -114,6 +114,21 @@ public class TargetSelection : MonoBehaviour
         UpdateAggressiveIndicators();
     }
 
+    // Düþmanýn hedef seçilebilir olup olmadýðýný kontrol et
+    private bool IsEnemySelectable(GameObject enemy)
+    {
+        if (enemy == null || !enemy.activeInHierarchy)
+            return false;
+
+        HealthSystem enemyHealth = enemy.GetComponent<HealthSystem>();
+
+        // Düþman ölü mü veya can sistemi yok mu?
+        if (enemyHealth == null || !enemyHealth.IsAlive())
+            return false;
+
+        return true;
+    }
+
     private void UpdateAggressiveIndicators()
     {
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
@@ -122,7 +137,7 @@ public class TargetSelection : MonoBehaviour
         // Agresif düþmanlarý tespit et
         foreach (GameObject enemy in enemies)
         {
-            if (enemy == null || !enemy.activeInHierarchy) continue;
+            if (!IsEnemySelectable(enemy)) continue;
 
             EnemyAI enemyAI = enemy.GetComponent<EnemyAI>();
             HealthSystem enemyHealth = enemy.GetComponent<HealthSystem>();
@@ -186,8 +201,8 @@ public class TargetSelection : MonoBehaviour
             spriteRenderer.sprite = CreateDefaultCircleSprite();
         }
 
-        spriteRenderer.color = Color.orange; // Kýrmýzý
-        spriteRenderer.sortingOrder = 99; // Seçili indicator'ýn altýnda
+        spriteRenderer.color = Color.orange;
+        spriteRenderer.sortingOrder = 99;
 
         indicator.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
         indicator.transform.localScale = Vector3.one * indicatorSize;
@@ -419,17 +434,19 @@ public class TargetSelection : MonoBehaviour
             return;
         }
 
-        var enemiesInRange = enemies.Where(enemy =>
+        // Sadece seçilebilir (canlý) düþmanlarý filtrele
+        var selectableEnemies = enemies.Where(enemy =>
+            IsEnemySelectable(enemy) &&
             Vector3.Distance(player.transform.position, enemy.transform.position) <= maxSelectionDistance
         ).ToArray();
 
-        if (enemiesInRange.Length == 0)
+        if (selectableEnemies.Length == 0)
         {
-            Debug.Log("Menzil içinde düþman yok!");
+            Debug.Log("Menzil içinde seçilebilir düþman yok!");
             return;
         }
 
-        GameObject nearestEnemy = GetClosestEnemy(enemiesInRange);
+        GameObject nearestEnemy = GetClosestEnemy(selectableEnemies);
 
         if (nearestEnemy == currentTarget)
         {
@@ -450,6 +467,10 @@ public class TargetSelection : MonoBehaviour
 
         foreach (GameObject enemy in enemies)
         {
+            // Ekstra güvenlik: Tekrar kontrol et
+            if (!IsEnemySelectable(enemy))
+                continue;
+
             float distance = Vector3.Distance(player.transform.position, enemy.transform.position);
             if (distance < minDistance)
             {

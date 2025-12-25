@@ -10,16 +10,20 @@ public class EnemyAI : MonoBehaviour
 
     [Header("Movement Settings")]
     public float moveSpeed = 2f;
+    public float walkSpeed = 1f; // Patrol için yürüme hýzý
     public float chaseRange = 10f;
     public float returnDistance = 15f;
 
     [Header("Patrol Settings")]
-    public float patrolRadius = 5f; // 10x10 alan için 5 birim yarýçap
+    public float patrolRadius = 5f;
     public float patrolWaitTime = 2f; // Noktalarda bekleme süresi
+    public float patrolIdleTime = 3f; // Yürürken durup idle yapma süresi
     public float patrolPointReachDistance = 0.5f;
     private Vector3 currentPatrolTarget;
     private float patrolWaitTimer = 0f;
+    private float patrolIdleTimer = 0f;
     private bool isWaitingAtPatrolPoint = false;
+    private bool isIdleWhilePatrolling = false; // Yürürken durma durumu
 
     [Header("State")]
     public GameObject currentTarget;
@@ -47,7 +51,6 @@ public class EnemyAI : MonoBehaviour
         animator = GetComponent<Animator>();
         spawnPosition = transform.position;
 
-        // Ýlk patrol noktasýný belirle
         SetNewPatrolPoint();
 
         if (animator == null)
@@ -63,7 +66,6 @@ public class EnemyAI : MonoBehaviour
             return;
         }
 
-        // Hedef ölmüþse idle'a dön
         if (currentTarget != null)
         {
             HealthSystem targetHealth = currentTarget.GetComponent<HealthSystem>();
@@ -93,17 +95,16 @@ public class EnemyAI : MonoBehaviour
 
     private void IdleBehavior()
     {
-        // Agresif deðilse patrol yap
         if (!isAggressive)
         {
             PatrolBehavior();
         }
         else
         {
+            SetWalkingAnimation(false);
             SetRunningAnimation(false);
         }
 
-        // Oyuncu menzile girdi mi kontrol et
         if (currentTarget != null)
         {
             float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
@@ -116,7 +117,6 @@ public class EnemyAI : MonoBehaviour
         }
         else
         {
-            // Oyuncu aramaya devam et
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
             {
@@ -133,7 +133,6 @@ public class EnemyAI : MonoBehaviour
 
     private void SetNewPatrolPoint()
     {
-        // Spawn noktasýndan 10x10'luk alanda rastgele nokta
         float randomX = Random.Range(-patrolRadius, patrolRadius);
         float randomZ = Random.Range(-patrolRadius, patrolRadius);
         currentPatrolTarget = spawnPosition + new Vector3(randomX, 0, randomZ);
@@ -141,12 +140,24 @@ public class EnemyAI : MonoBehaviour
 
     private void PatrolBehavior()
     {
-        // Koþma animasyonu
-        SetRunningAnimation(true);
+        // Yürürken durma (idle) durumu
+        if (isIdleWhilePatrolling)
+        {
+            SetWalkingAnimation(false);
+            patrolIdleTimer += Time.deltaTime;
 
-        // Bekleme durumu
+            if (patrolIdleTimer >= patrolIdleTime)
+            {
+                isIdleWhilePatrolling = false;
+                patrolIdleTimer = 0f;
+            }
+            return;
+        }
+
+        // Noktaya ulaþýnca bekleme durumu
         if (isWaitingAtPatrolPoint)
         {
+            SetWalkingAnimation(false);
             patrolWaitTimer += Time.deltaTime;
 
             if (patrolWaitTimer >= patrolWaitTime)
@@ -154,28 +165,33 @@ public class EnemyAI : MonoBehaviour
                 isWaitingAtPatrolPoint = false;
                 patrolWaitTimer = 0f;
                 SetNewPatrolPoint();
+
+                // Yeni noktaya giderken %50 þans ile durup idle yap
+                if (Random.value > 0.5f)
+                {
+                    isIdleWhilePatrolling = true;
+                }
             }
             return;
         }
 
-        // Patrol noktasýna git
+        // Patrol noktasýna yürüyerek git
+        SetWalkingAnimation(true);
         float distance = Vector3.Distance(transform.position, currentPatrolTarget);
 
         if (distance < patrolPointReachDistance)
         {
-            // Noktaya ulaþtý, bekle
             isWaitingAtPatrolPoint = true;
-            SetRunningAnimation(false); // Beklerken dur
         }
         else
         {
-            MoveTowards(currentPatrolTarget);
+            MoveTowards(currentPatrolTarget, walkSpeed);
         }
     }
 
     private void ChaseBehavior()
     {
-        // Koþma animasyonu
+        SetWalkingAnimation(false);
         SetRunningAnimation(true);
 
         if (currentTarget == null)
@@ -208,7 +224,7 @@ public class EnemyAI : MonoBehaviour
         }
         else if (distance <= chaseRange)
         {
-            MoveTowards(currentTarget.transform.position);
+            MoveTowards(currentTarget.transform.position, moveSpeed);
         }
         else
         {
@@ -218,7 +234,7 @@ public class EnemyAI : MonoBehaviour
 
     private void AttackBehavior()
     {
-        // Saldýrýrken koþma animasyonunu durdur
+        SetWalkingAnimation(false);
         SetRunningAnimation(false);
 
         if (currentTarget == null)
@@ -250,7 +266,7 @@ public class EnemyAI : MonoBehaviour
 
     private void ReturnBehavior()
     {
-        // Geri dönerken koþma animasyonu
+        SetWalkingAnimation(false);
         SetRunningAnimation(true);
 
         float distance = Vector3.Distance(transform.position, spawnPosition);
@@ -268,11 +284,11 @@ public class EnemyAI : MonoBehaviour
         }
         else
         {
-            MoveTowards(spawnPosition);
+            MoveTowards(spawnPosition, moveSpeed);
         }
     }
 
-    private void MoveTowards(Vector3 targetPosition)
+    private void MoveTowards(Vector3 targetPosition, float speed)
     {
         Vector3 direction = (targetPosition - transform.position).normalized;
         direction.y = 0;
@@ -282,14 +298,13 @@ public class EnemyAI : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 5f);
         }
 
-        transform.position += direction * moveSpeed * Time.deltaTime;
+        transform.position += direction * speed * Time.deltaTime;
     }
 
     private void PerformAttack()
     {
         if (currentTarget == null) return;
 
-        // Saldýrý animasyonunu tetikle
         TriggerAttackAnimation();
 
         HealthSystem targetHealth = currentTarget.GetComponent<HealthSystem>();
@@ -297,26 +312,20 @@ public class EnemyAI : MonoBehaviour
         {
             float finalDamage = attackDamage;
 
-            // Oyuncu savunma yapýyor mu kontrol et
             PlayerLocomotion playerLoco = currentTarget.GetComponent<PlayerLocomotion>();
             if (playerLoco != null && playerLoco.isDefending)
             {
-                // Oyuncunun baktýðý yön
                 float playerYRotation = currentTarget.transform.eulerAngles.y;
 
-                // Düþmanýn açýsýný hesapla (oyuncuya göre)
                 Vector3 directionToEnemy = (transform.position - currentTarget.transform.position).normalized;
                 float angleToEnemy = Mathf.Atan2(directionToEnemy.x, directionToEnemy.z) * Mathf.Rad2Deg;
 
-                // Açý farkýný hesapla (-180 ile 180 arasýnda normalize et)
                 float angleDifference = Mathf.DeltaAngle(playerYRotation, angleToEnemy);
 
-                // Eðer düþman önde ise (100 derece içinde)
                 if (Mathf.Abs(angleDifference) <= 80f)
                 {
-                    // %80 hasar azaltma
-                    finalDamage *= 0.2f; // 0.2 = %20 hasar (yani %80 azaltma)
-                    Debug.Log($"{enemyHealth.entityName} saldýrýsý BLOKLANDI! Hasar: {attackDamage}  {finalDamage}");
+                    finalDamage *= 0.2f;
+                    Debug.Log($"{enemyHealth.entityName} saldýrýsý BLOKLANDI! Hasar: {attackDamage} ? {finalDamage}");
                 }
                 else
                 {
@@ -342,7 +351,6 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // Oyuncu öldüðünde çaðrýlýr
     public void OnPlayerDeath()
     {
         Debug.Log($"{enemyHealth.entityName} savaþý kazandý ve geri dönüyor.");
@@ -351,11 +359,18 @@ public class EnemyAI : MonoBehaviour
         isAggressive = false;
         currentState = EnemyState.Returning;
 
-        // Animasyonlarý sýfýrla
-        SetRunningAnimation(true); // Geri dönerken koþacak
+        SetWalkingAnimation(false);
+        SetRunningAnimation(true);
     }
 
-    // Animasyon metodlarý
+    private void SetWalkingAnimation(bool isWalking)
+    {
+        if (animator != null)
+        {
+            animator.SetBool("isWalking", isWalking);
+        }
+    }
+
     private void SetRunningAnimation(bool isRunning)
     {
         if (animator != null)
@@ -376,23 +391,19 @@ public class EnemyAI : MonoBehaviour
     {
         if (animator != null)
         {
-            // Tüm trigger ve bool'larý sýfýrla
+            animator.SetBool("isWalking", false);
             animator.SetBool("isRunning", false);
             animator.ResetTrigger("attack");
 
-            // Death'i aktif et
             animator.SetBool("isDead", true);
 
             Debug.Log("Death animasyonu aktifleþtirildi - Animator enabled: " + animator.enabled);
         }
     }
 
-    // HealthSystem'den çaðrýlabilmesi için public metod
     public void OnDeath()
     {
         SetDeathAnimation();
-
-        // Kýsa bir gecikme ile AI'ý kapat (animasyon baþlasýn diye)
         Invoke("DisableAI", 0.1f);
     }
 
