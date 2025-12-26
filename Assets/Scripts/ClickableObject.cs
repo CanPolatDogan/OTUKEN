@@ -6,7 +6,10 @@ public class ClickableObject : MonoBehaviour
     [Header("Click Settings")]
     [Tooltip("Fare ile mi yoksa sadece UI ile mi týklanabilir?")]
     public bool useRaycast = true;
-    
+
+    [Header("Distance Settings")]
+    public float maxInteractionDistance = 10f; // Maksimum etkileþim mesafesi
+
     [Header("Visual Feedback")]
     public Color highlightColor = Color.yellow;
     public Color normalColor = Color.white;
@@ -28,7 +31,7 @@ public class ClickableObject : MonoBehaviour
 
         // Objenin renderer'ýný al
         objectRenderer = GetComponent<Renderer>();
-        
+
         if (objectRenderer != null)
         {
             originalColor = objectRenderer.material.color;
@@ -39,6 +42,12 @@ public class ClickableObject : MonoBehaviour
         if (useRaycast && GetComponent<Collider>() == null)
         {
             Debug.LogWarning($"{gameObject.name} üzerinde Collider yok! Týklama çalýþmayabilir.");
+        }
+
+        // PlayerHealth kontrolü
+        if (playerHealth == null)
+        {
+            Debug.LogWarning($"{gameObject.name} üzerinde PlayerHealth atanmamýþ!");
         }
     }
 
@@ -75,7 +84,7 @@ public class ClickableObject : MonoBehaviour
     {
         // Yeni Input System ile mouse pozisyonu
         Vector2 mousePosition = mouse.position.ReadValue();
-        
+
         Ray ray = Camera.main.ScreenPointToRay(mousePosition);
         RaycastHit hit;
 
@@ -89,10 +98,34 @@ public class ClickableObject : MonoBehaviour
 
     private void OnMouseEnterObject()
     {
-        // Fareyi üzerine getirdiðinde renk deðiþimi
-        if (objectRenderer != null)
+        // Mesafe kontrolü yap
+        if (playerHealth != null)
         {
-            objectRenderer.material.color = highlightColor;
+            float distance = Vector3.Distance(transform.position, playerHealth.transform.position);
+
+            // Eðer mesafe uygunsa yeþil, deðilse kýrmýzý yap
+            if (distance <= maxInteractionDistance)
+            {
+                if (objectRenderer != null)
+                {
+                    objectRenderer.material.color = highlightColor;
+                }
+            }
+            else
+            {
+                if (objectRenderer != null)
+                {
+                    objectRenderer.material.color = Color.red; // Uzak olduðunu göster
+                }
+            }
+        }
+        else
+        {
+            // PlayerHealth yoksa normal highlight
+            if (objectRenderer != null)
+            {
+                objectRenderer.material.color = highlightColor;
+            }
         }
 
         // Ýsteðe baðlý: Cursor deðiþtir
@@ -111,12 +144,43 @@ public class ClickableObject : MonoBehaviour
     // ======== ANA FONKSÝYON - BURAYA ÝSTEDÝÐÝNÝZÝ YAZIN ========
     public void OnObjectClicked()
     {
-        playerHealth.Heal(100f);
+        if (playerHealth == null)
+        {
+            if (showDebugLogs)
+                Debug.LogWarning("PlayerHealth atanmamýþ!");
+            return;
+        }
+
+        // Mesafe kontrolü
+        float distance = Vector3.Distance(transform.position, playerHealth.transform.position);
+
+        if (distance <= maxInteractionDistance)
+        {
+            // Mesafe uygun, heal iþlemini yap
+            playerHealth.Heal(100f);
+
+            if (showDebugLogs)
+                Debug.Log($"Oyuncu þifa aldý! Mesafe: {distance:F2}m");
+        }
+        else
+        {
+            // Mesafe çok uzak
+            if (showDebugLogs)
+                Debug.Log($"Çok uzaksýn! Mesafe: {distance:F2}m (Max: {maxInteractionDistance}m)");
+        }
     }
 
     // Inspector'dan çaðrýlabilir versiyon
     public void OnClick()
     {
         OnObjectClicked();
+    }
+
+    // Debug için Gizmo çiz
+    private void OnDrawGizmosSelected()
+    {
+        // Etkileþim mesafesini göster
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, maxInteractionDistance);
     }
 }
