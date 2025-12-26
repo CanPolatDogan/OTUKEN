@@ -7,9 +7,9 @@ public class InputManager : MonoBehaviour
     AnimatorManager animatorManager;
 
     Vector2 movementInput, cameraInput;
+
     [HideInInspector] public float moveAmount;
     [HideInInspector] public float verticalInput, horizontalInput, cameraInputX, cameraInputY;
-
     [HideInInspector] public bool sprintingInput, jumpInput, attackInput, defendInput;
 
     private void Awake()
@@ -23,6 +23,7 @@ public class InputManager : MonoBehaviour
         if (playerControls == null)
         {
             playerControls = new PlayerControls();
+
             playerControls.PlayerMovement.Movement.performed += i => movementInput = i.ReadValue<Vector2>();
             playerControls.PlayerMovement.Camera.performed += i => cameraInput = i.ReadValue<Vector2>();
 
@@ -36,6 +37,7 @@ public class InputManager : MonoBehaviour
             playerControls.PlayerActions.Defend.performed += i => defendInput = true;
             playerControls.PlayerActions.Defend.canceled += i => defendInput = false;
         }
+
         playerControls.Enable();
     }
 
@@ -62,7 +64,6 @@ public class InputManager : MonoBehaviour
         cameraInputY = cameraInput.y;
 
         moveAmount = Mathf.Clamp01(Mathf.Abs(horizontalInput) + Mathf.Abs(verticalInput));
-
         animatorManager.UpdateAnimatorValues(0, moveAmount, sprintingInput);
     }
 
@@ -80,10 +81,17 @@ public class InputManager : MonoBehaviour
 
     private void HandleJumpInput()
     {
-        if (jumpInput)
+        // Sadece yerdeyse ve zýplamýyorsa zýplayabilir
+        if (jumpInput && playerLocomotion.isGrounded && !playerLocomotion.isJumping)
         {
             jumpInput = false;
             playerLocomotion.HandleJumping();
+        }
+
+        // Input varsa ama zýplayamazsa inputu sýfýrla
+        if (jumpInput && (!playerLocomotion.isGrounded || playerLocomotion.isJumping))
+        {
+            jumpInput = false;
         }
     }
 

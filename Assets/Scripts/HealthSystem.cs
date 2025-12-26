@@ -20,7 +20,7 @@ public class HealthSystem : MonoBehaviour
     public bool isPlayer = false;
 
     [Header("Death Settings")]
-    public float deathDestroyDelay = 3f; // Ölüm animasyonu için bekleme süresiü
+    public float deathDestroyDelay = 3f; // Ã–lÃ¼m animasyonu iÃ§in bekleme sÃ¼resiÃ¼
     public bool isDead = false;
 
     [Header("Visual Feedback")]
@@ -29,8 +29,8 @@ public class HealthSystem : MonoBehaviour
     private Coroutine flashCoroutine;
 
     [Header("Flash Settings")]
-    public float flashIntensity = 0.4f; // Kýrmýzýlýk oraný (0-1 arasý, 0.4 = %40 kýrmýzý)
-    public float flashDuration = 0.15f; // Flash süresi
+    public float flashIntensity = 0.4f; // KÄ±rmÄ±zÄ±lÄ±k oranÄ± (0-1 arasÄ±, 0.4 = %40 kÄ±rmÄ±zÄ±)
+    public float flashDuration = 0.15f; // Flash sÃ¼resi
 
     private void Start()
     {
@@ -54,7 +54,7 @@ public class HealthSystem : MonoBehaviour
             healthBarUI.SetActive(false);
         }
 
-        // Renderer'larý kaydet (düþmanlar için)
+        // Renderer'larÄ± kaydet (dÃ¼ÅŸmanlar iÃ§in)
         if (!isPlayer)
         {
             CacheRenderers();
@@ -97,7 +97,7 @@ public class HealthSystem : MonoBehaviour
         List<Material> allMaterials = new List<Material>();
         List<Color> originalColors = new List<Color>();
 
-        // Tüm materyalleri topla ve orijinal renklerini sakla
+        // TÃ¼m materyalleri topla ve orijinal renklerini sakla
         foreach (Renderer renderer in enemyRenderers)
         {
             if (renderer == null) continue;
@@ -122,13 +122,13 @@ public class HealthSystem : MonoBehaviour
             }
         }
 
-        // Hafif kýrmýzý tint uygula
+        // Hafif kÄ±rmÄ±zÄ± tint uygula
         for (int i = 0; i < allMaterials.Count; i++)
         {
             Material mat = allMaterials[i];
             Color originalColor = originalColors[i];
 
-            // Orijinal renk ile kýrmýzý arasýnda karýþým (Lerp)
+            // Orijinal renk ile kÄ±rmÄ±zÄ± arasÄ±nda karÄ±ÅŸÄ±m (Lerp)
             Color tintedColor = Color.Lerp(originalColor, Color.red, flashIntensity);
 
             // Rengi uygula
@@ -145,7 +145,7 @@ public class HealthSystem : MonoBehaviour
         // Bekle
         yield return new WaitForSeconds(flashDuration);
 
-        // Orijinal renklere dön
+        // Orijinal renklere dÃ¶n
         for (int i = 0; i < allMaterials.Count; i++)
         {
             Material mat = allMaterials[i];
@@ -164,7 +164,7 @@ public class HealthSystem : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
-        if (isDead) return; // Ölüyse hasar alma
+        if (isDead) return; // Ã–lÃ¼yse hasar alma
 
         currentHealth -= damage;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
@@ -212,7 +212,7 @@ public class HealthSystem : MonoBehaviour
             if (show)
             {
                 nameText.text = entityName;
-                // Bar açýlýrken can deðerlerini de güncelle!
+                // Bar aÃ§Ä±lÄ±rken can deÄŸerlerini de gÃ¼ncelle!
                 UpdateHealthUI();
             }
         }
@@ -220,21 +220,20 @@ public class HealthSystem : MonoBehaviour
 
     private void Die()
     {
-        if (isDead) return; // Birden fazla çaðrýlmasýný önle
+        if (isDead) return;
         isDead = true;
-
-        Debug.Log($"{entityName} öldü!");
+        Debug.Log($"{entityName} Ã¶ldÃ¼!");
 
         if (!isPlayer)
         {
-            // EnemyAI'a ölüm animasyonunu tetikle
+            // EnemyAI'a Ã¶lÃ¼m animasyonunu tetikle
             EnemyAI enemyAI = GetComponent<EnemyAI>();
             if (enemyAI != null)
             {
                 enemyAI.OnDeath();
             }
 
-            // Collider'ý kapat (düþman üzerinden geçilebilsin)
+            // Collider'Ä± kapat (dÃ¼ÅŸman Ã¼zerinden geÃ§ilebilsin)
             Collider col = GetComponent<Collider>();
             if (col != null)
             {
@@ -248,46 +247,73 @@ public class HealthSystem : MonoBehaviour
                 rb.isKinematic = true;
             }
 
-            // Health bar'ý gizle
+            // Health bar'Ä± gizle
             ShowHealthBar(false);
 
-            // Animasyon oynadýktan sonra objeyi yok et
+            // Animasyon oynadÄ±ktan sonra objeyi yok et
             Destroy(gameObject, deathDestroyDelay);
         }
         else
         {
-            // Oyuncu öldüðünde yapýlacaklar
+            // Oyuncu Ã¶ldÃ¼ÄŸÃ¼nde yapÄ±lacaklar
             Debug.Log("Game Over!");
 
-            // Oyuncu kontrollerini devre dýþý býrak
+            // InputManager'Ä± kapat (tuÅŸ inputlarÄ±nÄ± kes)
             InputManager inputManager = GetComponent<InputManager>();
             if (inputManager != null)
             {
                 inputManager.enabled = false;
             }
 
-            // Oyuncu animatörü varsa ölüm animasyonu
+            // PlayerLocomotion'u kapat
+            PlayerLocomotion playerLocomotion = GetComponent<PlayerLocomotion>();
+            if (playerLocomotion != null)
+            {
+                playerLocomotion.enabled = false;
+            }
+
+            // Rigidbody'yi durdur - kinematic yap
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = true; // Fizik etkisini tamamen kapat
+                rb.useGravity = false; // YerÃ§ekimini kapat
+            }
+
+            // Oyuncu animatÃ¶rÃ¼ varsa Ã¶lÃ¼m animasyonu
             Animator animator = GetComponent<Animator>();
             if (animator != null)
             {
                 animator.SetBool("isDead", true);
+                animator.SetBool("isRunning", false);
+                animator.SetBool("isWalking", false);
+                animator.SetBool("isJumping", false);
+                animator.SetBool("isAttacking", false);
+                animator.SetBool("isDefending", false);
+                animator.SetFloat("moveSpeed", 0f);
             }
 
-            // Tüm düþmanlara oyuncunun öldüðünü bildir
+            // TÃ¼m dÃ¼ÅŸmanlara oyuncunun Ã¶ldÃ¼ÄŸÃ¼nÃ¼ bildir
             NotifyEnemiesOfPlayerDeath();
 
-            // Collider'ý kapat (düþmanlar üzerinden geçebilsin)
+            // Collider'Ä± kapat (dÃ¼ÅŸmanlar Ã¼zerinden geÃ§ebilsin)
             Collider col = GetComponent<Collider>();
             if (col != null)
             {
                 col.enabled = false;
+            }
+
+            // Hedef seÃ§im sistemini devre dÄ±ÅŸÄ± bÄ±rak
+            if (TargetSelection.Instance != null)
+            {
+                TargetSelection.Instance.DeselectTarget();
             }
         }
     }
 
     private void NotifyEnemiesOfPlayerDeath()
     {
-        // Sahnedeki tüm düþmanlarý bul
+        // Sahnedeki tÃ¼m dÃ¼ÅŸmanlarÄ± bul
         EnemyAI[] allEnemies = FindObjectsOfType<EnemyAI>();
 
         foreach (EnemyAI enemy in allEnemies)
@@ -295,7 +321,7 @@ public class HealthSystem : MonoBehaviour
             enemy.OnPlayerDeath();
         }
 
-        Debug.Log($"{allEnemies.Length} düþmana oyuncunun öldüðü bildirildi.");
+        Debug.Log($"{allEnemies.Length} dÃ¼ÅŸmana oyuncunun Ã¶ldÃ¼ÄŸÃ¼ bildirildi.");
     }
 
     public bool IsAlive()

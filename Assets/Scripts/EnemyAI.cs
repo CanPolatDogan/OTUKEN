@@ -353,14 +353,26 @@ public class EnemyAI : MonoBehaviour
 
     public void OnPlayerDeath()
     {
-        Debug.Log($"{enemyHealth.entityName} savaþý kazandý ve geri dönüyor.");
+        Debug.Log($"{enemyHealth.entityName} savaþý kazandý ve idle durumuna geçiyor.");
 
+        // Hedefi temizle
         currentTarget = null;
         isAggressive = false;
-        currentState = EnemyState.Returning;
 
+        // Idle durumuna geç
+        currentState = EnemyState.Idle;
+
+        // Tüm animasyonlarý sýfýrla
         SetWalkingAnimation(false);
-        SetRunningAnimation(true);
+        SetRunningAnimation(false);
+
+        isWaitingAtPatrolPoint = true;
+        isIdleWhilePatrolling = false;
+        patrolWaitTimer = 0f;
+        patrolIdleTimer = 0f;
+
+        // Yeni patrol noktasý belirle
+        SetNewPatrolPoint();
     }
 
     private void SetWalkingAnimation(bool isWalking)

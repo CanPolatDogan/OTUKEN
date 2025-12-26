@@ -114,10 +114,6 @@ public class ClickableObject : MonoBehaviour
         playerHealth.Heal(100f);
     }
 
-    // Event sistemi kullanmak isterseniz
-    public delegate void ClickEvent();
-    public event ClickEvent OnClickEvent;
-
     // Inspector'dan çaðrýlabilir versiyon
     public void OnClick()
     {

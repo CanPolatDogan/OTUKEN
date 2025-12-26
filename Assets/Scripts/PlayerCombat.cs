@@ -45,6 +45,11 @@ public class PlayerCombat : MonoBehaviour
 
     private void OnAttack(InputAction.CallbackContext context)
     {
+        if (playerHealth != null && !playerHealth.IsAlive())
+        {
+            Debug.Log("Ölü bir oyuncu saldýrý yapamaz!");
+            return;
+        }
         TryAttack();
     }
 
