@@ -314,7 +314,7 @@ public class HealthSystem : MonoBehaviour
     private void NotifyEnemiesOfPlayerDeath()
     {
         // Sahnedeki tüm düşmanları bul
-        EnemyAI[] allEnemies = FindObjectsOfType<EnemyAI>();
+        EnemyAI[] allEnemies = Object.FindObjectsByType<EnemyAI>(FindObjectsSortMode.None);
 
         foreach (EnemyAI enemy in allEnemies)
         {
