@@ -2,7 +2,6 @@
 
 > A 3D Action-RPG developed with Unity 2022.3 LTS — inspired by the Souls-like genre, built to be accessible.
 
-![Unity](https://img.shields.io/badge/Engine-Unity%202022.3%20LTS-black?logo=unity)
 ![Language](https://img.shields.io/badge/Language-C%23-239120?logo=csharp)
 ![Status](https://img.shields.io/badge/Status-In%20Development-yellow)
 
@@ -85,7 +84,7 @@
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Unity 2022.3 LTS
+- Unity 6000.3.8.f1
 - Git LFS (`git lfs install`)
 
 ### Setup
@@ -117,9 +116,7 @@ Then open the project folder in **Unity Hub**.
 
 ## 👤 Author
 
-**Can Polat Doğan** — Student No: 221030210035  
-*Computer Design Applications — Bursa Technical University, Computer Engineering*  
-Instructor: Dr. Öğr. Üyesi Serhat Hızlısoy
+**Can Polat Doğan**
 
 ---
 
