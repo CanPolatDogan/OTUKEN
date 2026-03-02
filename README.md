@@ -1,6 +1,6 @@
 # ⚔️ ÖTÜKEN
 
-> A 3D Action-RPG developed with Unity 2022.3 LTS — inspired by the Souls-like genre, built to be accessible.
+> A 3D Action-RPG developed with Unity 6000.3.8.f1 — inspired by the Souls-like genre, built to be accessible.
 
 ![Language](https://img.shields.io/badge/Language-C%23-239120?logo=csharp)
 ![Status](https://img.shields.io/badge/Status-In%20Development-yellow)
